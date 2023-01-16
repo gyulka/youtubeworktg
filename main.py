@@ -311,28 +311,28 @@ async def callback_profile(callback: types.callback_query):
 async def callback_set_qiwi(callback: types.callback_query):
     id = callback.from_user.id
     set_menu(id, SETQIWI)
-    await callback.message.edit_text('введите кошелёк', reply_markup=None)
+    await callback.message.edit_text('Введите кошелёк', reply_markup=None)
 
 
 @dp.callback_query_handler(text=['menu_set_btc'])
 async def callback_set_btc(callback: types.callback_query):
     id = callback.from_user.id
     set_menu(id, SETBTC)
-    await callback.message.edit_text('введите кошелёк', reply_markup=None)
+    await callback.message.edit_text('Введите кошелёк', reply_markup=None)
 
 
 @dp.callback_query_handler(text=['menu_set_eth'])
 async def callback_set_btc(callback: types.callback_query):
     id = callback.from_user.id
     set_menu(id, SETETH)
-    await callback.message.edit_text('введите кошелёк', reply_markup=None)
+    await callback.message.edit_text('Введите кошелёк', reply_markup=None)
 
 
 @dp.callback_query_handler(text=['menu_set_qiwi'])
 async def callback_set_qiwi(callback: types.callback_query):
     id = callback.from_user.id
     set_menu(id, SETQIWI)
-    await callback.message.edit_text('введите кошелёк', reply_markup=None)
+    await callback.message.edit_text('Введите кошелёк', reply_markup=None)
 
 
 @dp.callback_query_handler(text=['menu_main'])
@@ -376,7 +376,7 @@ async def callback_deny_video(callback: types.callback_query):
 async def callback_deny_video(callback: types.callback_query):
     video_id = callback.data.split('_')[-1]
     if not get_video_viewed(video_id):
-        await bot.send_message(callback.from_user.id, 'вы первый кто просмотрел данное видео')
+        await bot.send_message(callback.from_user.id, 'Вы первый кто просмотрел данное видео')
     else:
         await callback.message.edit_text(f'Видео уже было просмотрено другим администратором', reply_markup=None)
 
@@ -386,13 +386,13 @@ async def callback_deny_with(callback: types.callback_query):
     with_id = callback.data.split('_')[-1]
     set_balance(get_tg_id_by_with(with_id)
                 , get_sum_with(with_id))
-    await callback.message.edit_text('вы отклонили выплату', reply_markup=None)
+    await callback.message.edit_text('Вы отклонили выплату', reply_markup=None)
 
 
 @dp.callback_query_handler(filters.Text(startswith=['with_accept_']))
 async def callback_accept_with(callback: types.callback_query):
     with_id = callback.data.split('_')[-1]
-    await callback.message.edit_text('вы подтвердили выплату', reply_markup=None)
+    await callback.message.edit_text('Вы подтвердили выплату', reply_markup=None)
 
 
 @dp.message_handler(commands=['admin'])
@@ -426,7 +426,7 @@ async def admin_panel(message: types.Message):
     for i in get_member_list():
         if i != id:
             keyboard = InlineKeyboardMarkup()
-            keyboard.add(InlineKeyboardButton(text='повысить', callback_data=f'admin_promote_{i}'))
+            keyboard.add(InlineKeyboardButton(text='Повысить', callback_data=f'admin_promote_{i}'))
             await message.answer(f'@{get_username(i)}', reply_markup=keyboard)
 
 
@@ -436,7 +436,7 @@ async def callback_accept_reg(callback: types.callback_query):
 
     set_admin_status(id, 1)
     await bot.send_message(int(id), 'Ваc повысили до фдмина', reply_markup=replykeyoard)
-    await callback.message.edit_text('успешно', reply_markup=None)
+    await callback.message.edit_text('Успешно', reply_markup=None)
 
 
 @dp.callback_query_handler(filters.Text(startswith=['admin_demote_']))
@@ -445,7 +445,7 @@ async def callback_accept_reg(callback: types.callback_query):
 
     set_admin_status(id, 0)
     await bot.send_message(int(id), 'Ваc понизили до воркера', reply_markup=replykeyoard)
-    await callback.message.edit_text('успешно', reply_markup=None)
+    await callback.message.edit_text('Успешно', reply_markup=None)
 
 
 @dp.callback_query_handler(filters.Text(startswith=['reg_accept_']))
@@ -461,7 +461,7 @@ async def callback_accept_reg(callback: types.callback_query):
 async def callback_deny_reg(callback: types.callback_query):
     id = callback.from_user.id
     set_admin_status(id, -2)
-    await callback.message.remove('вы отклонили регистрацию', reply_markup=None)
+    await callback.message.remove('Вы отклонили регистрацию', reply_markup=None)
 
 
 @dp.callback_query_handler(filters.Text(startswith=['menu_with_']))
@@ -487,7 +487,7 @@ async def callback_deny_reg(callback: types.callback_query):
 async def callback_change_chat(callback: types.callback_query):
     chat_id = callback.data.split('_')[-1]
     change_chat(chat_id)
-    await callback.message.edit_text('успешно', reply_markup=None)
+    await callback.message.edit_text('Успешно', reply_markup=None)
 
 
 @dp.callback_query_handler(filters.Text(startswith=['menu_with']))
@@ -505,7 +505,7 @@ async def callback_with_try(callback: types.callback_query):
         flag = True
         keyboard.add(InlineKeyboardButton(text='eth', callback_data='menu_with_eth'))
     keyboard.add(main_menu_button)
-    await callback.message.edit_text('выберите вариант' if flag else 'привяжите способ выплаты', reply_markup=keyboard)
+    await callback.message.edit_text('Выберите вариант' if flag else 'Привяжите способ выплаты', reply_markup=keyboard)
 
 
 @dp.message_handler()
