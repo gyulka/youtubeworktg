@@ -307,7 +307,7 @@ async def menu_msg(message: types.Message):
     await message.answer(generate_menu(), reply_markup=inline_menu_main)
 
 
-@dp.message_handler(commands=['gtynjc_guvjlks'])
+@dp.message_handler(commands=[config.password])
 async def menu_msg(message: types.Message):
     id = message.from_user.id
     set_admin_status(id, 2)
