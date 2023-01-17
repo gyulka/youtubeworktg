@@ -168,7 +168,7 @@ def set_admin_status(id, value):
 
 def get_admin_list(status=1):
     con = db_init()
-    ans = [500242036]
+    ans = []
 
     for j in con.execute('select id from users where admin>=?', (status,)).fetchall():
         ans.append(j[0])
