@@ -29,6 +29,9 @@ SETQIWI = 3
 SETBTC = 4
 SETETH = 5
 SENDURL = 6
+SENDFIRSTARG = 7
+SENDSECONDARG = 8
+SENDTHIRDARG = 9
 
 # keyboards
 menu_profile_button = InlineKeyboardButton(text='профиль', callback_data='menu_profile')
@@ -53,7 +56,7 @@ inline_menu_profile.add(menu_set_btc)
 inline_menu_profile.add(menu_set_eth)
 inline_menu_profile.add(main_menu_button)
 
-replykeyoard = ReplyKeyboardMarkup()
+replykeyoard = ReplyKeyboardMarkup(resize_keyboard=True)
 replykeyoard.add('/menu')
 
 
@@ -224,18 +227,34 @@ def get_sum_with(with_id):
 
 def get_chat_id():
     con = db_init()
-    return con.execute('select chat_id from config where id=1').fetchone()[0]
+    return con.execute('select value from config where id=1').fetchone()[0]
+
+
+def get_first_arg():
+    con = db_init()
+    return con.execute('select value from config where id=2').fetchone()[0]
+
+
+def get_second_arg():
+    con = db_init()
+    return con.execute('select value from config where id=3').fetchone()[0]
+
+
+def get_third_arg():
+    con = db_init()
+    return ', l' if con.execute('select value from config where id=4').fetchone()[0] else ''
 
 
 def change_chat(value):
     con = db_init()
-    con.execute('update config set chat_id=? where id=1', (value,))
+    con.execute('update config set value=? where id=1', (value,))
     con.commit()
 
 
 def generate_post(user: types.user, url):
     id = url.split('/')[-1]
     id = id.split('v=')[-1]
+    id = id.split('&')[-1]
     ans = f'''Пользователь @{user.username} отправил на модерацию видео
 Видео: {id}
 URL: {url}'''
@@ -264,7 +283,7 @@ def get_count_videos(id):
 def generate_menu():
     return '''Добро пожаловать в бота с оплатой за залив видео на Youtube
 
-Информация тут будет обновлена, а пока что напишите @araaraara2021
+Информация тут будет обновлена, а пока что напишите @a_nubii_sssuka
 
 Ваша оплата за каждый загруженный видеоролик: 30 RUB'''
 
@@ -293,7 +312,7 @@ async def start_msg(message: types.Message):
             await bot.send_message(i, f'Заявка на регистрацию\nНик:{message.from_user.username}', reply_markup=keyboard)
         await message.answer('Заявка успешно принята на рассмотрение')
     elif get_admin_status(id) > -1:
-        await message.answer('Вы уже зарегестрированы')
+        await message.answer('Вы уже зарегестрированы', reply_markup=replykeyoard)
     else:
         await message.answer('Дождитесь рассмотрения заявки')
 
@@ -365,12 +384,12 @@ async def callback_menu(callback: types.callback_query):
 async def callback_accept_video(callback: types.callback_query):
     video_id = callback.data.split('|')[-1]
     if not get_video_viewed(video_id):
-        text = f'/seo all https://www.youtube.com/watch?v={video_id}, 60, 100, l'
+        text = f'/seo all https://www.youtube.com/watch?v={video_id}, {get_first_arg()}, {get_second_arg()}' + get_third_arg()
         await bot.send_message(get_chat_id(), text)
         add_salary(get_tg_id_by_video(video_id))
         set_video_viewed(video_id)
 
-        await callback.message.edit_text(f'Вы одобрили видео {video_id}', reply_markup=None)
+        await callback.message.edit_text(callback.message.text + '\n' + f'Одобрено', reply_markup=None)
     else:
         await callback.message.edit_text(f'Видео уже было просмотрено другим администратором', reply_markup=None)
 
@@ -380,12 +399,12 @@ async def callback_deny_video(callback: types.callback_query):
     video_id = callback.data.split('|')[-1]
     if not get_video_viewed(video_id):
         set_video_viewed(video_id)
-        await callback.message.edit_text(f'Вы отклонили видео {video_id}', reply_markup=None)
+        await callback.message.edit_text(callback.message.text + '\n' + f'Отклонено', reply_markup=None)
     else:
         await callback.message.edit_text(f'Видео уже было просмотрено другим администратором', reply_markup=None)
 
 
-@dp.callback_query_handler(filters.Text(startswith=['video_refresh}']))
+@dp.callback_query_handler(filters.Text(startswith=['video_refresh']))
 async def callback_deny_video(callback: types.callback_query):
     video_id = callback.data.split('|')[-1]
     if not get_video_viewed(video_id):
@@ -405,7 +424,7 @@ async def callback_deny_with(callback: types.callback_query):
 @dp.callback_query_handler(filters.Text(startswith=['with_accept_']))
 async def callback_accept_with(callback: types.callback_query):
     with_id = callback.data.split('_')[-1]
-    await callback.message.edit_text('Вы подтвердили выплату', reply_markup=None)
+    await callback.message.edit_text(callback.message.text + '\n' + f'Одобрено', reply_markup=None)
 
 
 @dp.message_handler(commands=['admin'])
@@ -414,7 +433,8 @@ async def admin_panel(message: types.Message):
     if get_admin_status(id) != 2:
         await message.answer('Не достаточно прав')
         return
-    await message.answer('/admin_list показывает список администраторов\n/member_list показывает список воркеров')
+    await message.answer(
+        '/admin_list показывает список администраторов\n/member_list показывает список воркеров\n/likes_on отключает лайки\n/likes_on включает лайки\n/set_first_arg записать новый аргумент под номером 1\n/set_second_arg записать новый аргумент под номером 2')
 
 
 @dp.message_handler(commands=['admin_list'])
@@ -443,6 +463,50 @@ async def admin_panel(message: types.Message):
             await message.answer(f'@{get_username(i)}', reply_markup=keyboard)
 
 
+@dp.message_handler(commands=['set_first_arg'])
+async def admin_panel(message: types.Message):
+    id = message.from_user.id
+    if get_admin_status(id) != 2:
+        await message.answer('Не достаточно прав')
+        return
+    set_menu(id, SENDFIRSTARG)
+    await message.answer(f'введите первый аргумент')
+
+
+@dp.message_handler(commands=['set_second_arg'])
+async def admin_panel(message: types.Message):
+    id = message.from_user.id
+    if get_admin_status(id) != 2:
+        await message.answer('Не достаточно прав')
+        return
+    set_menu(id, SENDSECONDARG)
+    await message.answer(f'введите второй аргумент')
+
+
+@dp.message_handler(commands=['likes_on'])
+async def admin_panel(message: types.Message):
+    id = message.from_user.id
+    if get_admin_status(id) != 2:
+        await message.answer('Не достаточно прав')
+        return
+    con = db_init()
+    con.execute('update config set value=1 where id=4')
+    con.commit()
+    await message.answer(f'Успешно')
+
+
+@dp.message_handler(commands=['likes_off'])
+async def admin_panel(message: types.Message):
+    id = message.from_user.id
+    if get_admin_status(id) != 2:
+        await message.answer('Не достаточно прав')
+        return
+    con = db_init()
+    con.execute('update config set value=0 where id=4')
+    con.commit()
+    await message.answer(f'Успешно')
+
+
 @dp.callback_query_handler(filters.Text(startswith=['admin_promote_']))
 async def callback_accept_reg(callback: types.callback_query):
     id = callback.data.split('_')[-1]
@@ -467,7 +531,7 @@ async def callback_accept_reg(callback: types.callback_query):
 
     set_admin_status(id, 0)
     await bot.send_message(int(id), 'Вам одобрили регистрацию', reply_markup=replykeyoard)
-    await callback.message.edit_text('Вы подтвердили регистрацию', reply_markup=None)
+    await callback.message.edit_text(callback.message.text + '\n' + f'Одобрено', reply_markup=None)
 
 
 @dp.callback_query_handler(filters.Text(startswith=['reg_deny_']))
@@ -500,7 +564,7 @@ async def callback_deny_reg(callback: types.callback_query):
 async def callback_change_chat(callback: types.callback_query):
     chat_id = callback.data.split('_')[-1]
     change_chat(chat_id)
-    await callback.message.edit_text('Успешно', reply_markup=None)
+    await callback.message.edit_text(callback.message.text + '\n' + f'Подтверждено', reply_markup=None)
 
 
 @dp.callback_query_handler(filters.Text(startswith=['menu_with']))
@@ -531,28 +595,47 @@ async def message_handler(message: types.Message):
         await message.answer('Успешно')
         await message.answer(generate_menu(), reply_markup=inline_menu_main)
 
-    if menu == SETBTC:
+    elif menu == SETBTC:
         set_btc(id, message.text)
         set_menu(id, 0)
         await message.answer('Успешно')
         await message.answer(generate_menu(), reply_markup=inline_menu_main)
 
-    if menu == SETETH:
+    elif menu == SETETH:
         set_eth(id, message.text)
         set_menu(id, 0)
         await message.answer('Успешно')
         await message.answer(generate_menu(), reply_markup=inline_menu_main)
 
-    if menu == SENDURL:
-        mess, video_id = generate_post(message.from_user, message.text)
-        insert_video(video_id, id)
-        keyboard = InlineKeyboardMarkup()
-        keyboard.add(InlineKeyboardButton(text='Отклонить', callback_data=f'video_deny|{video_id}'))
-        keyboard.add(InlineKeyboardButton(text='Одобрить', callback_data=f'video_accept|{video_id}'))
-        keyboard.add(InlineKeyboardButton(text='Оновить', callback_data=f'video_refresh|{video_id}'))
+    elif menu == SENDURL:
+        if get_admin_status(id) != 1:
+            mess, video_id = generate_post(message.from_user, message.text)
+            insert_video(video_id, id)
+            keyboard = InlineKeyboardMarkup()
+            keyboard.add(InlineKeyboardButton(text='Отклонить', callback_data=f'video_deny|{video_id}'))
+            keyboard.add(InlineKeyboardButton(text='Одобрить', callback_data=f'video_accept|{video_id}'))
+            keyboard.add(InlineKeyboardButton(text='Оновить', callback_data=f'video_refresh|{video_id}'))
 
-        for i in get_admin_list():
-            await bot.send_message(i, mess, reply_markup=keyboard)
+            for i in get_admin_list():
+                await bot.send_message(i, mess, reply_markup=keyboard)
+        else:
+            await message.answer('Вы админ, вы не можете воркать')
+    elif menu == SENDFIRSTARG:
+        if get_admin_status(id) == 2:
+            con = db_init()
+            con.execute('update config set value=? where id=2', (message.text,))
+            con.commit()
+            await message.answer('Успешно')
+        set_menu(id, 0)
+
+
+    elif menu == SENDSECONDARG:
+        if get_admin_status(id) == 2:
+            con = db_init()
+            con.execute('update config set value=? where id=3', (message.text,))
+            con.commit()
+            await message.answer('Успешно')
+        set_menu(id, 0)
 
 
 @dp.my_chat_member_handler()
